@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'giftdetails.dart';
 
 class GiftListPage extends StatelessWidget {
   final String userId;
@@ -37,7 +38,10 @@ class GiftListPage extends StatelessWidget {
             itemCount: gifts.length,
             itemBuilder: (context, index) {
               final gift = gifts[index];
+              final isPledged = gift['status'] == 'Pledged'; // Check if pledged
+
               return Card(
+                color: isPledged ? Colors.grey[300] : Colors.white, // Mark pledged gifts
                 elevation: 4,
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 shape: RoundedRectangleBorder(
@@ -58,7 +62,16 @@ class GiftListPage extends StatelessWidget {
                   ),
                   trailing: const Icon(Icons.arrow_forward, color: Colors.deepPurple),
                   onTap: () {
-                    // Optionally navigate to gift details if needed
+                    // Navigate to GiftDetailsPage
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GiftDetailsPage(
+                          giftId: gift.id, // Pass gift document ID
+                          friendId: friendId, // Pass the friend's ID
+                        ),
+                      ),
+                    );
                   },
                 ),
               );

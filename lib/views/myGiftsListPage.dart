@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'myGiftDetailsPage.dart';
 
 class MyGiftsListPage extends StatelessWidget {
   final String userId;
@@ -17,7 +18,7 @@ class MyGiftsListPage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('giftlist')
-            .where('owner', isEqualTo: userId) // Get gifts created by the user
+            .where('owner', isEqualTo: userId) // Filter gifts by userId
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -34,7 +35,7 @@ class MyGiftsListPage extends StatelessWidget {
             itemCount: gifts.length,
             itemBuilder: (context, index) {
               final giftData = gifts[index].data() as Map<String, dynamic>;
-              final giftId = gifts[index].id; // Document ID
+              final giftId = gifts[index].id;
 
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -68,12 +69,20 @@ class MyGiftsListPage extends StatelessWidget {
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () async {
-                      await _deleteGift(context, giftId); // Pass context here
+                      await _deleteGift(context, giftId);
                     },
                   ),
                   onTap: () {
-                    // Pass context here as well for the edit dialog
-                    _editGiftDialog(context, giftId, giftData);
+                    // Navigate to MyGiftDetailsPage
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MyGiftDetailsPage(
+                          giftId: giftId,
+                          userId: userId,
+                        ),
+                      ),
+                    );
                   },
                 ),
               );
@@ -100,80 +109,5 @@ class MyGiftsListPage extends StatelessWidget {
         SnackBar(content: Text('Error: $e')),
       );
     }
-  }
-
-  // Edit Gift Dialog
-  void _editGiftDialog(BuildContext context, String giftId, Map<String, dynamic> giftData) {
-    final nameController = TextEditingController(text: giftData['name']);
-    final categoryController = TextEditingController(text: giftData['category']);
-    final statusController = TextEditingController(text: giftData['status']);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Gift'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Gift Name'),
-                ),
-                TextField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(labelText: 'Category'),
-                ),
-                TextField(
-                  controller: statusController,
-                  decoration: const InputDecoration(labelText: 'Status'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                final category = categoryController.text.trim();
-                final status = statusController.text.trim();
-
-                if (name.isNotEmpty && category.isNotEmpty && status.isNotEmpty) {
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('giftlist')
-                        .doc(giftId)
-                        .update({
-                      'name': name,
-                      'category': category,
-                      'status': status,
-                    });
-
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Gift updated successfully!')),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('All fields are required.')),
-                  );
-                }
-              },
-              child: const Text('Save Changes'),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

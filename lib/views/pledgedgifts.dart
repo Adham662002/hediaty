@@ -1,34 +1,32 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PledgedGiftsPage extends StatelessWidget {
+class MyPledgedGiftsPage extends StatelessWidget {
   final String userId;
 
-  const PledgedGiftsPage({super.key, required this.userId});
+  const MyPledgedGiftsPage({Key? key, required this.userId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Pledged Gifts',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Pledged Gifts'),
         backgroundColor: Colors.deepPurple,
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .collection('pledgedGifts')
+            .collection('giftlist')
+            .where('owner', isEqualTo: userId)
+            .where('status', isEqualTo: 'Pledged') // Only show pledged gifts
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No pledged gifts found.'));
+            return const Center(child: Text('No pledged gifts available.'));
           }
 
           final pledgedGifts = snapshot.data!.docs;
@@ -36,38 +34,37 @@ class PledgedGiftsPage extends StatelessWidget {
           return ListView.builder(
             itemCount: pledgedGifts.length,
             itemBuilder: (context, index) {
-              final pledgedGift = pledgedGifts[index];
-              final giftData = pledgedGift.data() as Map<String, dynamic>;
+              final giftData = pledgedGifts[index].data() as Map<String, dynamic>;
+              final giftId = pledgedGifts[index].id;
 
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                elevation: 4,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                elevation: 3,
                 child: ListTile(
+                  contentPadding: const EdgeInsets.all(12),
                   title: Text(
-                    giftData['name'] ?? 'Unnamed Gift',
+                    'Gift Name: ${giftData['name']}',
                     style: const TextStyle(
+                      fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.deepPurple,
                     ),
                   ),
-                  subtitle: Text(
-                    '${giftData['category']} - ${giftData['status']}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                    onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(userId)
-                          .collection('pledgedGifts')
-                          .doc(pledgedGift.id)
-                          .delete();
-                    },
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 6),
+                      Text(
+                        'Category: ${giftData['category']}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      Text(
+                        'Status: ${giftData['status']}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
                   ),
                 ),
               );

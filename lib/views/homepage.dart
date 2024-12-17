@@ -28,7 +28,7 @@ class HomePage extends StatelessWidget {
         backgroundColor: Colors.deepPurple,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: const Icon(Icons.event, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,

@@ -4,7 +4,6 @@ import 'package:uuid/uuid.dart';
 
 import 'myGiftsListPage.dart';
 
-
 class MyEventsPage extends StatelessWidget {
   final String userId;
 
@@ -64,7 +63,9 @@ class MyEventsPage extends StatelessWidget {
                 return ListView.builder(
                   itemCount: events.length,
                   itemBuilder: (context, index) {
-                    final eventData = events[index].data() as Map<String, dynamic>;
+                    final event = events[index];
+                    final eventId = event.id;
+                    final eventData = event.data() as Map<String, dynamic>;
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -85,17 +86,21 @@ class MyEventsPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 6),
-                            Text(
-                              'Event Date: ${eventData['date']}',
-                              style: const TextStyle(fontSize: 16),
+                            Text('Event Date: ${eventData['date']}', style: const TextStyle(fontSize: 16)),
+                            Text('Location: ${eventData['location']}', style: const TextStyle(fontSize: 16)),
+                            Text('Description: ${eventData['description']}', style: const TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _editEventDialog(context, eventId, eventData),
                             ),
-                            Text(
-                              'Location: ${eventData['location']}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            Text(
-                              'Description: ${eventData['description']}',
-                              style: const TextStyle(fontSize: 14),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteEvent(context, eventId),
                             ),
                           ],
                         ),
@@ -109,6 +114,98 @@ class MyEventsPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // Edit Event Dialog
+  void _editEventDialog(BuildContext context, String eventId, Map<String, dynamic> eventData) {
+    final nameController = TextEditingController(text: eventData['name']);
+    final dateController = TextEditingController(text: eventData['date']);
+    final locationController = TextEditingController(text: eventData['location']);
+    final descriptionController = TextEditingController(text: eventData['description']);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Event'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Event Name'),
+                ),
+                TextField(
+                  controller: dateController,
+                  decoration: const InputDecoration(labelText: 'Event Date'),
+                  onTap: () async {
+                    DateTime? selectedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2101),
+                    );
+                    if (selectedDate != null) {
+                      dateController.text = selectedDate.toLocal().toString().split(' ')[0]; // Update text field with selected date
+                    }
+                  },
+                ),
+                TextField(
+                  controller: locationController,
+                  decoration: const InputDecoration(labelText: 'Location'),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final updatedEvent = {
+                  'name': nameController.text.trim(),
+                  'date': dateController.text.trim(),
+                  'location': locationController.text.trim(),
+                  'description': descriptionController.text.trim(),
+                };
+
+                await FirebaseFirestore.instance
+                    .collection('events')
+                    .doc(eventId)
+                    .update(updatedEvent);
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Event updated successfully!')),
+                );
+              },
+              child: const Text('Save Changes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Delete Event
+  Future<void> _deleteEvent(BuildContext context, String eventId) async {
+    try {
+      await FirebaseFirestore.instance.collection('events').doc(eventId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Event deleted successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting event: $e')),
+      );
+    }
   }
 
   // Create Gift Dialog
