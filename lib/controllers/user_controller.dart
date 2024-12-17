@@ -14,6 +14,8 @@ class UserController {
         'phone': phone,
         'friends':[],
         'events':[],
+        'giftslist':[],
+
       });
     } catch (e) {
       throw Exception('Error adding user to Firestore: $e');

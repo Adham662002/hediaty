@@ -11,7 +11,7 @@ class CustomTextForm extends StatelessWidget {
     required this.hinttext,
     required this.mycontroller,
     this.keyboardType = TextInputType.text, // Default to text input
-    this.obscureText = false, // Default to non-obscure (text) input
+    this.obscureText = false, required String? Function(dynamic value) validator, // Default to non-obscure (text) input
   });
 
   @override

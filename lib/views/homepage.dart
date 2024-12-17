@@ -3,7 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
-import 'eventlist.dart';  // Import the uuid package
+import 'eventlist.dart'; // Import EventListPage
+import 'myevents.dart';  // Import MyEventsPage
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -29,7 +30,12 @@ class HomePage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
             onPressed: () {
-              // TODO: Implement search functionality
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyEventsPage(userId: user!.uid),
+                ),
+              );
             },
           ),
           IconButton(
@@ -93,8 +99,7 @@ class HomePage extends StatelessWidget {
                             );
                           }
 
-                          final friendData =
-                          friendSnapshot.data!.data() as Map<String, dynamic>;
+                          final friendData = friendSnapshot.data!.data() as Map<String, dynamic>;
 
                           return FriendTile(
                             friend: Friend(

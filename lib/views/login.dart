@@ -50,7 +50,7 @@ class _LoginState extends State<Login> {
                   "Email",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
                 ),
-                CustomTextForm(hinttext: "Enter Your Email", mycontroller: email),
+                CustomTextForm(hinttext: "Enter Your Email", mycontroller: email, validator: (value) {  },),
 
                 const SizedBox(height: 20),
 
@@ -58,7 +58,7 @@ class _LoginState extends State<Login> {
                   "Password",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
                 ),
-                CustomTextForm(hinttext: "Enter Your Password", mycontroller: password),
+                CustomTextForm(hinttext: "Enter Your Password", mycontroller: password, validator: (value) {  },),
 
                 const SizedBox(height: 40),
 
