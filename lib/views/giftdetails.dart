@@ -42,18 +42,24 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
 
   // Update pledged status
   Future<void> _togglePledgedStatus() async {
+    if (_isPledged) {
+      // If already pledged, show a message and prevent further action
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This gift is already pledged!')),
+      );
+      return;
+    }
+
     setState(() {
-      _isPledged = !_isPledged;
+      _isPledged = true;
     });
 
     await FirebaseFirestore.instance.collection('giftlist').doc(widget.giftId).update({
-      'status': _isPledged ? 'Pledged' : 'Available',
+      'status': 'Pledged',
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Gift marked as ${_isPledged ? "Pledged" : "Available"}'),
-      ),
+      const SnackBar(content: Text('Gift marked as Pledged')),
     );
   }
 
@@ -71,24 +77,49 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Name: ${_giftData!['name']}',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Category: ${_giftData!['category']}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Description: ${_giftData!['description'] ?? 'No description'}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Price: \$${_giftData!['price'] ?? '0'}',
-              style: const TextStyle(fontSize: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: _isPledged ? Colors.grey[700] : Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Name: ${_giftData!['name']}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: _isPledged ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Category: ${_giftData!['category']}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _isPledged ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Description: ${_giftData!['description'] ?? 'No description'}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _isPledged ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Price: \$${_giftData!['price'] ?? '0'}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _isPledged ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
             SwitchListTile(

@@ -18,7 +18,7 @@ class MyEventsPage extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.card_giftcard, color: Colors.white), // Add Gift button
+            icon: const Icon(Icons.card_giftcard, color: Colors.white),
             onPressed: () {
               _createGiftDialog(context, userId);
             },
@@ -139,7 +139,9 @@ class MyEventsPage extends StatelessWidget {
                 TextField(
                   controller: dateController,
                   decoration: const InputDecoration(labelText: 'Event Date'),
+                  readOnly: true, // Disables manual typing
                   onTap: () async {
+                    // Show date picker dialog
                     DateTime? selectedDate = await showDatePicker(
                       context: context,
                       initialDate: DateTime.now(),
@@ -147,7 +149,8 @@ class MyEventsPage extends StatelessWidget {
                       lastDate: DateTime(2101),
                     );
                     if (selectedDate != null) {
-                      dateController.text = selectedDate.toLocal().toString().split(' ')[0]; // Update text field with selected date
+                      dateController.text =
+                      "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
                     }
                   },
                 ),
@@ -176,10 +179,7 @@ class MyEventsPage extends StatelessWidget {
                   'description': descriptionController.text.trim(),
                 };
 
-                await FirebaseFirestore.instance
-                    .collection('events')
-                    .doc(eventId)
-                    .update(updatedEvent);
+                await FirebaseFirestore.instance.collection('events').doc(eventId).update(updatedEvent);
 
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -254,10 +254,7 @@ class MyEventsPage extends StatelessWidget {
                     var uuid = Uuid();
                     String giftId = uuid.v4();
 
-                    await FirebaseFirestore.instance
-                        .collection('giftlist')
-                        .doc(giftId)
-                        .set({
+                    await FirebaseFirestore.instance.collection('giftlist').doc(giftId).set({
                       'name': name,
                       'category': category,
                       'status': status,

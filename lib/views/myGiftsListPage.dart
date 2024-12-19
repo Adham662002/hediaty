@@ -1,6 +1,8 @@
+import 'package:firebase/views/pledgedgifts.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'myGiftDetailsPage.dart';
+
 
 class MyGiftsListPage extends StatelessWidget {
   final String userId;
@@ -14,6 +16,19 @@ class MyGiftsListPage extends StatelessWidget {
         title: const Text('My Gifts'),
         backgroundColor: Colors.deepPurple,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.card_giftcard, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyPledgedGiftsPage(userId: userId),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

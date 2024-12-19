@@ -1,10 +1,12 @@
+import 'package:firebase/views/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 
 import 'eventlist.dart'; // Import EventListPage
-import 'myevents.dart';  // Import MyEventsPage
+import 'myevents.dart'; // Import MyEventsPage
+
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -12,6 +14,14 @@ class HomePage extends StatelessWidget {
   Future<void> _signOut(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     Navigator.pushReplacementNamed(context, 'login');
+  }
+
+  Future<int> _getUpcomingEventsCount(String friendId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('events')
+        .where('owner', isEqualTo: friendId)
+        .get();
+    return querySnapshot.docs.length;
   }
 
   @override
@@ -28,6 +38,17 @@ class HomePage extends StatelessWidget {
         backgroundColor: Colors.deepPurple,
         actions: [
           IconButton(
+            icon: const Icon(Icons.account_circle, color: Colors.white), // Profile Icon
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MyProfilePage(userId: user!.uid),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.event, color: Colors.white),
             onPressed: () {
               Navigator.push(
@@ -39,9 +60,8 @@ class HomePage extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.white), // The new button
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () {
-              // Show dialog to create an event
               _createEventDialog(context, user);
             },
           ),
@@ -69,45 +89,69 @@ class HomePage extends StatelessWidget {
                     .doc(user.uid)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
                   }
-                  if (!snapshot.hasData || snapshot.data!.data() == null) {
+                  if (!snapshot.hasData ||
+                      snapshot.data!.data() == null) {
                     return const Center(child: Text('No friends found.'));
                   }
 
-                  final data = snapshot.data!.data() as Map<String, dynamic>;
-                  final friends = List<String>.from(data['friends'] ?? []);
+                  final data =
+                  snapshot.data!.data() as Map<String, dynamic>;
+                  final friends =
+                  List<String>.from(data['friends'] ?? []);
 
                   return ListView.builder(
                     itemCount: friends.length,
                     itemBuilder: (context, index) {
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(friends[index])
-                            .get(),
-                        builder: (context, friendSnapshot) {
-                          if (friendSnapshot.connectionState == ConnectionState.waiting) {
+                      return FutureBuilder<int>(
+                        future:
+                        _getUpcomingEventsCount(friends[index]),
+                        builder: (context, eventCountSnapshot) {
+                          if (eventCountSnapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const ListTile(
                               title: Text('Loading friend...'),
                             );
                           }
-                          if (!friendSnapshot.hasData || friendSnapshot.data!.data() == null) {
-                            return const ListTile(
-                              title: Text('Friend not found'),
-                            );
-                          }
 
-                          final friendData = friendSnapshot.data!.data() as Map<String, dynamic>;
+                          return FutureBuilder<DocumentSnapshot>(
+                            future: FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(friends[index])
+                                .get(),
+                            builder: (context, friendSnapshot) {
+                              if (friendSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const ListTile(
+                                  title: Text('Loading friend...'),
+                                );
+                              }
+                              if (!friendSnapshot.hasData ||
+                                  friendSnapshot.data!.data() ==
+                                      null) {
+                                return const ListTile(
+                                  title: Text('Friend not found'),
+                                );
+                              }
 
-                          return FriendTile(
-                            friend: Friend(
-                              id: friends[index],
-                              name: friendData['username'] ?? 'Unnamed', // Ensure 'username' is used
-                              upcomingEvents: friendData['upcomingEvents'] ?? 0,
-                            ),
-                            userId: user.uid,
+                              final friendData = friendSnapshot.data!
+                                  .data() as Map<String, dynamic>;
+
+                              return FriendTile(
+                                friend: Friend(
+                                  id: friends[index],
+                                  name: friendData['username'] ??
+                                      'Unnamed',
+                                  upcomingEvents:
+                                  eventCountSnapshot.data ?? 0,
+                                ),
+                                userId: user.uid,
+                              );
+                            },
                           );
                         },
                       );
@@ -184,14 +228,21 @@ class HomePage extends StatelessWidget {
                 final location = locationController.text.trim();
                 final description = descriptionController.text.trim();
 
-                if (name.isNotEmpty && date.isNotEmpty && location.isNotEmpty && description.isNotEmpty && user != null) {
+                if (name.isNotEmpty &&
+                    date.isNotEmpty &&
+                    location.isNotEmpty &&
+                    description.isNotEmpty &&
+                    user != null) {
                   try {
                     // Generate UUID for the event ID
                     var uuid = Uuid();
                     String eventId = uuid.v4(); // Generate a unique ID
 
                     // Store the event in Firestore
-                    await FirebaseFirestore.instance.collection('events').doc(eventId).set({
+                    await FirebaseFirestore.instance
+                        .collection('events')
+                        .doc(eventId)
+                        .set({
                       'name': name,
                       'date': date,
                       'location': location,
@@ -202,7 +253,10 @@ class HomePage extends StatelessWidget {
                     });
 
                     // Optionally add the event to the user's list of events if needed
-                    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                    await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .update({
                       'events': FieldValue.arrayUnion([eventId]),
                     });
 
@@ -271,11 +325,14 @@ class HomePage extends StatelessWidget {
 
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Friend ${friendData['username']} added successfully!')),
+                        SnackBar(
+                            content: Text(
+                                'Friend ${friendData['username']} added successfully!')),
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No user found with this phone number.')),
+                        const SnackBar(
+                            content: Text('No user found with this phone number.')),
                       );
                     }
                   } catch (e) {
@@ -302,7 +359,8 @@ class FriendTile extends StatelessWidget {
   final Friend friend;
   final String userId;
 
-  const FriendTile({Key? key, required this.friend, required this.userId}) : super(key: key);
+  const FriendTile({Key? key, required this.friend, required this.userId})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
