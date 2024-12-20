@@ -7,9 +7,16 @@ import 'package:uuid/uuid.dart';
 import 'eventlist.dart'; // Import EventListPage
 import 'myevents.dart'; // Import MyEventsPage
 
-
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
+
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
 
   Future<void> _signOut(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
@@ -82,6 +89,23 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  labelText: 'Search Friends',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim().toLowerCase();
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
             Expanded(
               child: StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
@@ -89,65 +113,60 @@ class HomePage extends StatelessWidget {
                     .doc(user.uid)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Center(
-                        child: CircularProgressIndicator());
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
-                  if (!snapshot.hasData ||
-                      snapshot.data!.data() == null) {
+                  if (!snapshot.hasData || snapshot.data!.data() == null) {
                     return const Center(child: Text('No friends found.'));
                   }
 
-                  final data =
-                  snapshot.data!.data() as Map<String, dynamic>;
-                  final friends =
-                  List<String>.from(data['friends'] ?? []);
+                  final data = snapshot.data!.data() as Map<String, dynamic>;
+                  final friends = List<String>.from(data['friends'] ?? []);
 
                   return ListView.builder(
                     itemCount: friends.length,
                     itemBuilder: (context, index) {
-                      return FutureBuilder<int>(
-                        future:
-                        _getUpcomingEventsCount(friends[index]),
-                        builder: (context, eventCountSnapshot) {
-                          if (eventCountSnapshot.connectionState ==
-                              ConnectionState.waiting) {
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(friends[index])
+                            .get(),
+                        builder: (context, friendSnapshot) {
+                          if (friendSnapshot.connectionState == ConnectionState.waiting) {
                             return const ListTile(
                               title: Text('Loading friend...'),
                             );
                           }
+                          if (!friendSnapshot.hasData || friendSnapshot.data!.data() == null) {
+                            return const ListTile(
+                              title: Text('Friend not found'),
+                            );
+                          }
 
-                          return FutureBuilder<DocumentSnapshot>(
-                            future: FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(friends[index])
-                                .get(),
-                            builder: (context, friendSnapshot) {
-                              if (friendSnapshot.connectionState ==
+                          final friendData =
+                          friendSnapshot.data!.data() as Map<String, dynamic>;
+
+                          final friendName = friendData['username'] ?? 'Unnamed';
+                          if (_searchQuery.isNotEmpty &&
+                              !friendName.toLowerCase().contains(_searchQuery)) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return FutureBuilder<int>(
+                            future: _getUpcomingEventsCount(friends[index]),
+                            builder: (context, eventCountSnapshot) {
+                              if (eventCountSnapshot.connectionState ==
                                   ConnectionState.waiting) {
                                 return const ListTile(
                                   title: Text('Loading friend...'),
                                 );
                               }
-                              if (!friendSnapshot.hasData ||
-                                  friendSnapshot.data!.data() ==
-                                      null) {
-                                return const ListTile(
-                                  title: Text('Friend not found'),
-                                );
-                              }
-
-                              final friendData = friendSnapshot.data!
-                                  .data() as Map<String, dynamic>;
 
                               return FriendTile(
                                 friend: Friend(
                                   id: friends[index],
-                                  name: friendData['username'] ??
-                                      'Unnamed',
-                                  upcomingEvents:
-                                  eventCountSnapshot.data ?? 0,
+                                  name: friendName,
+                                  upcomingEvents: eventCountSnapshot.data ?? 0,
                                 ),
                                 userId: user.uid,
                               );
